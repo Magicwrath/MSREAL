@@ -1,0 +1,11 @@
+ALL: zadatak1
+
+zadatak1: zadatak1.o
+	gcc -o zadatak1 zadatak1.o
+
+zadatak1.o: zadatak1.c
+	gcc -c zadatak1.c
+
+.PHONY: clean
+clean:
+	rm -f zadatak1 zadatak1.o
