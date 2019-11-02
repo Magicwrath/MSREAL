@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+//Postaviti par pitanja u vezi softverskog diferenciranja
 int main(void) {
   FILE* fp;
   int led, switches = 0;
