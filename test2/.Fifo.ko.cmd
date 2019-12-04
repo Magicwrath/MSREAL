@@ -1,1 +1,0 @@
-cmd_/root/temp/MSREAL/test2/Fifo.ko := ld -EL -r  -T ./scripts/module-common.lds --build-id  -o /root/temp/MSREAL/test2/Fifo.ko /root/temp/MSREAL/test2/Fifo.o /root/temp/MSREAL/test2/Fifo.mod.o ;  true
