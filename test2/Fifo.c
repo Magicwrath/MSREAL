@@ -23,9 +23,10 @@ DECLARE_WAIT_QUEUE_HEAD(readQ);
 DECLARE_WAIT_QUEUE_HEAD(writeQ);
 struct semaphore sem;
 
-int fifo[10];
+uint fifo[16];
 int rpos = 0; //Pokazivac na prvi upisani el.
 int wpos = 0; //Pokazivac na sledece slobodno mesto
+int num_of_el = 0; //ukupan broj podataka u baferu
 int endRead = 0;
 
 //rpos == wpos => fifo prazan
@@ -69,9 +70,9 @@ ssize_t fifo_read(struct file *pfile, char __user *buffer, size_t length, loff_t
     return -ERESTARTSYS;
   }
 
-  while (rpos == wpos) {
+  while (num_of_el == 0) {
     up(&sem);
-    if (wait_event_interruptible(readQ, (rpos != wpos))) {
+    if (wait_event_interruptible(readQ, (num_of_el > 0))) {
       return -ERESTARTSYS;
     }
     if (down_interruptible(&sem)) {
@@ -80,10 +81,11 @@ ssize_t fifo_read(struct file *pfile, char __user *buffer, size_t length, loff_t
   }
 
   //Prodje proces koji dobije semafor, ako bafer nije prazan
-  if (rpos != wpos) {
+  if (num_of_el > 0) {
     len = scnprintf(buff, BUFF_SIZE, "%d", fifo[rpos]); //cita sa rpos mesta
     ret = copy_to_user(buffer, buff, len);
-    rpos = (rpos + 1) % 10;
+    rpos = (rpos + 1) % 16;
+    num_of_el--;
     if (ret)
       return -EFAULT;
     printk(KERN_INFO "Successfully read\n");
@@ -98,42 +100,85 @@ ssize_t fifo_read(struct file *pfile, char __user *buffer, size_t length, loff_t
   return len;
 }
 
+//Dobro parsuje, doraditi kod ukoliko neko unese hex sa vise/manje od 2 bajta
+//Problem, upisuje vrednosti od nazad
+//echo 1,2 > /dev/fifo prvo upise 2 pa 1
 ssize_t fifo_write(struct file *pfile, const char __user *buffer, size_t length, loff_t *offset) {
-  int ret = 0;
-  int value;
+  int ret;
+  int i = 0;
+  int last_comma = 0;
+  int num_of_value = 0;
   char buff[BUFF_SIZE];
+  uint value[BUFF_SIZE];
 
   ret = copy_from_user(buff, buffer, length);
   if (ret)
     return -EFAULT;
+  buff[length - 1] = '\0';
 
-  buff[length-1] = '\0';
-  if (down_interruptible(&sem))
-    return -ERESTARTSYS;
+  if (strchr(buff, ',') != NULL) {
+    buff[length - 1] = ',';
+    buff[length] = '\0';
+  } //umesto '\0' stavi ',' da bi radio algoritam dole
 
-  while (((rpos + 1)%10) == wpos) {
-    up(&sem);
-    if (wait_event_interruptible(writeQ, (((rpos + 1)%10) == wpos)))
-      return -ERESTARTSYS;
+  down_interruptible(&sem);
+  for (i = 0; i < length; i++) {
+    char parse_buff[BUFF_SIZE];
+    if (buff[i] == ',') {
+      strncpy(parse_buff, buff + last_comma, 2);
+      parse_buff[2] = '\0';
+      kstrtouint(parse_buff, 16, &value[num_of_value]);
+      printk(KERN_INFO "Parsovani string je : %s", parse_buff);
+      printk(KERN_INFO "Konvertovana vrednost je : %u", value[num_of_value]);
+      if (value[num_of_value] > 255) {
+        printk(KERN_WARNING "Value above 255\n");
+      } else {
+        num_of_value++;
+      }
+      last_comma = i + 1;
+    }
+  }
+  up(&sem);
+
+  //slucaj ako nema zareza
+  if (last_comma == 0) {
+    kstrtouint(buff, 16, &value[num_of_value]);
+    if (value[num_of_value] > 255) {
+      printk(KERN_WARNING "Value above 255\n");
+    } else {
+      num_of_value++;
+    }
+  }
+
+  while (num_of_value > 0) {
+    printk(KERN_INFO "Number of value is: %d", num_of_value-1);
+    printk(KERN_INFO "value[%d] = %u", num_of_value-1, value[num_of_value-1]);
+    //Zauzima semafor svaki put kad prodje petlju za upis elementa
     if (down_interruptible(&sem))
       return -ERESTARTSYS;
-  }
 
-  if (((rpos + 1)%10) != wpos) {
-    ret = sscanf(buff, "%d", &value);
-    if (ret == 1) {
-      printk(KERN_INFO "Succesfully wrote value %d", value);
-      fifo[wpos] = value;
-      wpos = (wpos + 1) % 10;
-    } else {
-      printk(KERN_WARNING "Wrong command format\n");
+    while (num_of_el == 16) {
+      //Oslobadja semafor i ceka budjenje dok se ne oslobodi mesto u baferu
+      up(&sem);
+      if(wait_event_interruptible(writeQ, (num_of_el < 16)))
+        return -ERESTARTSYS;
+      if(down_interruptible(&sem))
+        return -ERESTARTSYS;
     }
-  } else {
-    printk(KERN_WARNING "Fifo is full\n");
+
+    if(num_of_el < 16) {
+      fifo[wpos] = value[num_of_value-1];
+      printk(KERN_INFO "Succesfully wrote %u\n", value[num_of_value-1]);
+      wpos = (wpos + 1) % 16;
+      num_of_el++;
+      num_of_value--;
+
+      //probudi uspavani proces za citanje
+      up(&sem);
+      wake_up_interruptible(&readQ);
+    }
   }
 
-  up(&sem);
-  wake_up_interruptible(&readQ);
   return length;
 }
 
@@ -144,7 +189,7 @@ static int __init fifo_init(void) {
   sema_init(&sem, 1);
 
   //Inicijalizacija niza
-  for (i = 0; i < 10; i++)
+  for (i = 0; i < 16; i++)
     fifo[i] = 0;
 
   ret = alloc_chrdev_region(&my_dev_id, 0, 1, "fifo");
