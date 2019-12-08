@@ -11,7 +11,7 @@
 #include <linux/device.h>
 #include <linux/wait.h>
 #include <linux/semaphore.h>
-#define BUFF_SIZE 20
+#define BUFF_SIZE 50
 MODULE_LICENSE("Dual BSD/GPL");
 
 dev_t my_dev_id;
@@ -82,13 +82,16 @@ ssize_t fifo_read(struct file *pfile, char __user *buffer, size_t length, loff_t
 
   //Prodje proces koji dobije semafor, ako bafer nije prazan
   if (num_of_el > 0) {
-    len = scnprintf(buff, BUFF_SIZE, "%d", fifo[rpos]); //cita sa rpos mesta
+    len = scnprintf(buff, BUFF_SIZE, "%u", fifo[rpos]); //cita sa rpos mesta
     ret = copy_to_user(buffer, buff, len);
-    rpos = (rpos + 1) % 16;
     num_of_el--;
+
     if (ret)
       return -EFAULT;
-    printk(KERN_INFO "Successfully read\n");
+
+    printk(KERN_INFO "Successfully read %u\n", fifo[rpos]);
+    rpos = (rpos + 1) % 16;
+
   } else {
     printk(KERN_INFO "Fifo is empty\n");
   }
@@ -97,6 +100,7 @@ ssize_t fifo_read(struct file *pfile, char __user *buffer, size_t length, loff_t
   wake_up_interruptible(&writeQ);
 
   endRead = 1;
+
   return len;
 }
 
@@ -106,6 +110,7 @@ ssize_t fifo_read(struct file *pfile, char __user *buffer, size_t length, loff_t
 ssize_t fifo_write(struct file *pfile, const char __user *buffer, size_t length, loff_t *offset) {
   int ret;
   int i = 0;
+  int j = 0;
   int last_comma = 0;
   int num_of_value = 0;
   char buff[BUFF_SIZE];
@@ -121,12 +126,11 @@ ssize_t fifo_write(struct file *pfile, const char __user *buffer, size_t length,
     buff[length] = '\0';
   } //umesto '\0' stavi ',' da bi radio algoritam dole
 
-  down_interruptible(&sem);
   for (i = 0; i < length; i++) {
     char parse_buff[BUFF_SIZE];
     if (buff[i] == ',') {
-      strncpy(parse_buff, buff + last_comma, 2);
-      parse_buff[2] = '\0';
+      strncpy(parse_buff, buff + last_comma, i - last_comma);
+      parse_buff[i - last_comma] = '\0';
       kstrtouint(parse_buff, 16, &value[num_of_value]);
       printk(KERN_INFO "Parsovani string je : %s", parse_buff);
       printk(KERN_INFO "Konvertovana vrednost je : %u", value[num_of_value]);
@@ -138,7 +142,6 @@ ssize_t fifo_write(struct file *pfile, const char __user *buffer, size_t length,
       last_comma = i + 1;
     }
   }
-  up(&sem);
 
   //slucaj ako nema zareza
   if (last_comma == 0) {
@@ -151,8 +154,6 @@ ssize_t fifo_write(struct file *pfile, const char __user *buffer, size_t length,
   }
 
   while (num_of_value > 0) {
-    printk(KERN_INFO "Number of value is: %d", num_of_value-1);
-    printk(KERN_INFO "value[%d] = %u", num_of_value-1, value[num_of_value-1]);
     //Zauzima semafor svaki put kad prodje petlju za upis elementa
     if (down_interruptible(&sem))
       return -ERESTARTSYS;
@@ -167,8 +168,9 @@ ssize_t fifo_write(struct file *pfile, const char __user *buffer, size_t length,
     }
 
     if(num_of_el < 16) {
-      fifo[wpos] = value[num_of_value-1];
-      printk(KERN_INFO "Succesfully wrote %u\n", value[num_of_value-1]);
+      fifo[wpos] = value[j];
+      printk(KERN_INFO "Succesfully wrote %u\n", value[j]);
+      j++;
       wpos = (wpos + 1) % 16;
       num_of_el++;
       num_of_value--;
