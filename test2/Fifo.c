@@ -27,7 +27,7 @@ uint fifo[16];
 int rpos = 0; //Pokazivac na prvi upisani el.
 int wpos = 0; //Pokazivac na sledece slobodno mesto
 int num_of_el = 0; //ukupan broj podataka u baferu
-int endRead = 0;
+int endRead = 0;  //broj read procesa spremnih za terminiranje
 int times_read = 0; //broj pozivanja read funkcije
 int read_mode = 0; //0 za hex, 1 za dec
 int read_num = 1; //broj clanova za citanje
@@ -64,11 +64,16 @@ ssize_t fifo_read(struct file *pfile, char __user *buffer, size_t length, loff_t
   char buff[BUFF_SIZE];
   long int len = 0;
 
-  /*if (endRead) {
-    endRead = 0;
-    printk(KERN_WARNING "Zavrsilo je jedno citanje!\n");
+  if(endRead > 0) {
+    //Zauzmi semafor jer pristupas deljenom resursu
+    if(down_interruptible(&sem))
+      return -ERESTARTSYS;
+
+    endRead--;
+    up(&sem);
+
     return 0;
-    }*/
+  }
 
   //Kreni da citas read_num puta, zauzmi semafor
   if(down_interruptible(&sem))
@@ -90,10 +95,10 @@ ssize_t fifo_read(struct file *pfile, char __user *buffer, size_t length, loff_t
 
     if(read_mode) {
       //Decimalno citanje ako je read_mode = 1
-      len = scnprintf(buff, BUFF_SIZE, "%d ", fifo[rpos]);
+      len = scnprintf(buff, BUFF_SIZE, "%d\n", fifo[rpos]);
     } else {
       //Heksadecimalno citanje ako je read_mode = 0
-      len = scnprintf(buff, BUFF_SIZE, "0x%x ", fifo[rpos]);
+      len = scnprintf(buff, BUFF_SIZE, "0x%x\n", fifo[rpos]);
     }
 
     printk(KERN_INFO "Succesfully read value 0x%x\n", fifo[rpos]);
@@ -106,13 +111,10 @@ ssize_t fifo_read(struct file *pfile, char __user *buffer, size_t length, loff_t
     times_read++; //Proslo citanje
   }
 
-  //Ukoliko je procitano read_num puta, signaliziraj kraj citanja
+  //Ako procitas read_num puta, pripremi se za terminiranje
   if(times_read == read_num) {
     times_read = 0;
-    wake_up_interruptible(&writeQ);
-    up(&sem);
-
-    return 0;
+    endRead++; //Povecaj broj procesa koji cekaju na terminiranje
   }
 
   //Oslobodi semafor i pomeri listu cekanja za upis
