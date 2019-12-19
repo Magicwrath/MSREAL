@@ -22,6 +22,7 @@ static struct cdev *my_cdev;
 DECLARE_WAIT_QUEUE_HEAD(readQ);
 DECLARE_WAIT_QUEUE_HEAD(writeQ);
 struct semaphore sem;
+struct semaphore write_sem;
 
 uint fifo[16];
 int rpos = 0; //Pokazivac na prvi upisani el.
@@ -31,6 +32,7 @@ int endRead = 0;  //broj read procesa spremnih za terminiranje
 int times_read = 0; //broj pozivanja read funkcije
 int read_mode = 0; //0 za hex, 1 za dec
 int read_num = 1; //broj clanova za citanje
+
 
 //rpos == wpos => fifo prazan
 //(rpos+1)%10 == wpos => fifo pun
@@ -163,6 +165,7 @@ ssize_t fifo_write(struct file *pfile, const char __user *buffer, size_t length,
     up(&sem);
   } else {
     //upis brojeva
+
     token = strsep(&parse_buff, ",");
     while(token != NULL) {
       kstrtouint(token, 16, &value[num_of_values]);
@@ -178,9 +181,14 @@ ssize_t fifo_write(struct file *pfile, const char __user *buffer, size_t length,
       token = strsep(&parse_buff, ",");
     }
 
+    //Zauzmi semafor za write, da drugi proces koji upisuje ne sme da dodje na red
+    if(down_interruptible(&write_sem))
+      return -ERESTARTSYS;
+
     //Gotovo parsiranje stringa, sledi upis
     if(down_interruptible(&sem))
       return -ERESTARTSYS;
+
 
     while (num_of_values > 0) {
       while(num_of_el == 16) {
@@ -207,6 +215,9 @@ ssize_t fifo_write(struct file *pfile, const char __user *buffer, size_t length,
     //Oslobodi semafor tek kad upises sve elemente!
     printk(KERN_WARNING "Broj elemenata u baferu je : %d\n", num_of_el);
     up(&sem);
+    //Oslobodi i semafor za drugi write process
+    up(&write_sem);
+
   }
 
   return length;
@@ -217,6 +228,7 @@ static int __init fifo_init(void) {
   int i = 0;
 
   sema_init(&sem, 1);
+  sema_init(&write_sem, 1);
 
   //Inicijalizacija niza
   for (i = 0; i < 16; i++)
