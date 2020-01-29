@@ -59,7 +59,7 @@ void drawTriangle(unsigned int *display, int pos_x, int pos_y, int height, unsig
   }
 }
 
-void drawCircle(unsigned int *display, int pos_x, int pos_y, int r, unsigned int rgb) {
+void drawCircle(unsigned int *display, int pos_x, int pos_y, int r, int part, unsigned int rgb) {
   float y_val;
   int prev_val_pos;
   int prev_val_neg;
@@ -69,45 +69,50 @@ void drawCircle(unsigned int *display, int pos_x, int pos_y, int r, unsigned int
   int i;
 
   for(x; x <= pos_x + r; x++) {
-    common_op = sqrt(r*r - (x - pos_x)*(x - pos_x));
-    y_val = common_op  + pos_y;
-    //printf("Calculated for x = %d, y_val = %f\n", x, y_val);
-    quantized_y = (int) y_val;
-    //printf("Quantized y_val is : %d\n\n", quantized_y);
-    display[640 * quantized_y + x] = rgb;
-    if(x == (pos_x - r))
+    //SOLUTIONS FOR THE POSITIVE VALUE OF THE ROOT
+    if(part >= 0) {
+      common_op = sqrt(r*r - (x - pos_x)*(x - pos_x));
+      y_val = common_op  + pos_y;
+      //printf("Calculated for x = %d, y_val = %f\n", x, y_val);
+      quantized_y = (int) y_val;
+      //printf("Quantized y_val is : %d\n\n", quantized_y);
+      display[640 * quantized_y + x] = rgb;
+      if(x == (pos_x - r))
+        prev_val_pos = quantized_y;
+      //printf("prev_val_pos : %d\n", prev_val_pos);
+      //printf("quantized_y : %d\n", quantized_y);
+
+      //draws a verical line from the previous y point to the new point
+      if(prev_val_pos < quantized_y) {
+        for(i = prev_val_pos; i < quantized_y; i++)
+          display[640 * i + x] = rgb;
+      } else {
+        for(i = quantized_y; i < prev_val_pos; i++)
+          display[640 * i + x] = rgb;
+      }
       prev_val_pos = quantized_y;
-    //printf("prev_val_pos : %d\n", prev_val_pos);
-    //printf("quantized_y : %d\n", quantized_y);
-
-    //draws a verical line from the previous y point to the new point
-    if(prev_val_pos < quantized_y) {
-      for(i = prev_val_pos; i < quantized_y; i++)
-	display[640 * i + x] = rgb;
-    } else {
-      for(i = quantized_y; i < prev_val_pos; i++)
-	display[640 * i + x] = rgb;
     }
-    prev_val_pos = quantized_y;
 
-    //the other solutions for the negative value of the square root
-    y_val = pos_y - common_op;
-    quantized_y = (int) y_val;
-    if(x == pos_x - r)
+    //SOLUTIONS FOR THE NEGATIVE VALUE OF THE ROOT
+    if(part <= 0) {
+      y_val = pos_y - common_op;
+      quantized_y = (int) y_val;
+      if(x == pos_x - r)
+        prev_val_neg = quantized_y;
+      //printf("prev_val_neg : %d\n", prev_val_neg);
+      //printf("quantized_y : %d\n", quantized_y);
+
+      //same function as for the positive solutions
+      if(prev_val_neg < quantized_y) {
+        for(i = prev_val_neg; i < quantized_y;i++)
+          display[640 * i + x] = rgb;
+      } else {
+        for(i = quantized_y; i < prev_val_neg ; i++)
+          display[640 * i + x] = rgb;
+      }
       prev_val_neg = quantized_y;
-    //printf("prev_val_neg : %d\n", prev_val_neg);
-    //printf("quantized_y : %d\n", quantized_y);
-
-    //same function as for the positive solutions
-    if(prev_val_neg < quantized_y) {
-      for(i = prev_val_neg; i < quantized_y;i++)
-	display[640 * i + x] = rgb;
-    } else {
-      for(i = quantized_y; i < prev_val_neg ; i++)
-	display[640 * i + x] = rgb;
+      display[640 * quantized_y + x] = rgb;
     }
-    prev_val_neg = quantized_y;
-    display[640 * quantized_y + x] = rgb;
   }
 }
 

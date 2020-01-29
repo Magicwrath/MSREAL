@@ -55,15 +55,15 @@ int main(void) {
 
       //symbol generator loop
       for(i = 0; i < 6; i++) {
-	gen_sequence[i] = rand() % 4;
-	drawSymbol(gen_sequence[i], pos_x, pos_y, display, CLR_WHITE);
+        gen_sequence[i] = rand() % 4;
+        drawSymbol(gen_sequence[i], pos_x, pos_y, display, CLR_WHITE);
 
-	//offset the next symbol, if the generated symbol is a triangle, use a different offset
-	if(gen_sequence[i] == 2) {
-	  pos_x += 90;
-	} else {
-	  pos_x += 50;
-	}
+        //offset the next symbol, if the generated symbol is a triangle, use a different offset
+        if(gen_sequence[i] == 2) {
+          pos_x += 90;
+        } else {
+          pos_x += 50;
+        }
       }
 
       memcpy(p, display, MAX_PKT_SIZE);
@@ -83,89 +83,89 @@ int main(void) {
       
       //software differentiation
       if(button_pressed == 0 && (strncmp("0b0000", button_val, 6) != 0)) {
-	button_pressed = 1;
+        button_pressed = 1;
 
-	//find out which button is pressed
-	if(strncmp("0b0001", button_val, 6) == 0) {
-	  //BTN0 pressed
-	  if(gen_sequence[i] == 3) {
-	    drawSymbol(3, pos_x, pos_y, display, CLR_GREEN);
-	  }
-	  else {
-	    drawSymbol(3, pos_x, pos_y, display, CLR_RED);
-	    game_over = 1;
-	  }
-	  memcpy(p, display, MAX_PKT_SIZE);
-	  //offset next symbol
-	  pos_x += 50;
-	  i++;
-	}
+        //find out which button is pressed
+        if(strncmp("0b0001", button_val, 6) == 0) {
+          //BTN0 pressed
+          if(gen_sequence[i] == 3) {
+            drawSymbol(3, pos_x, pos_y, display, CLR_GREEN);
+          }
+          else {
+            drawSymbol(3, pos_x, pos_y, display, CLR_RED);
+            game_over = 1;
+          }
+          memcpy(p, display, MAX_PKT_SIZE);
+          //offset next symbol
+          pos_x += 50;
+          i++;
+        }
       
 
-	if(strncmp("0b0010", button_val, 6) == 0) {
-	  //BTN1 pressed
-	  if(gen_sequence[i] == 2) {
-	    drawSymbol(2, pos_x, pos_y, display, CLR_GREEN);
-	  }
-	  else {
-	    drawSymbol(2, pos_x, pos_y, display, CLR_RED);
-	    game_over = 1;
-	  }
-	  memcpy(p, display, MAX_PKT_SIZE);
-	  //offset next symbol
-	  pos_x += 90;
-	  i++;
-	}
+        if(strncmp("0b0010", button_val, 6) == 0) {
+          //BTN1 pressed
+          if(gen_sequence[i] == 2) {
+            drawSymbol(2, pos_x, pos_y, display, CLR_GREEN);
+          }
+          else {
+            drawSymbol(2, pos_x, pos_y, display, CLR_RED);
+            game_over = 1;
+          }
+          memcpy(p, display, MAX_PKT_SIZE);
+          //offset next symbol
+          pos_x += 90;
+          i++;
+        }
 
-	if(strncmp("0b0100", button_val, 6) == 0) {
-	  //BTN2 pressed
-	  if(gen_sequence[i] == 1) {
-	    drawSymbol(1, pos_x, pos_y, display, CLR_GREEN);
-	  }
-	  else {
-	    drawSymbol(1, pos_x, pos_y, display, CLR_RED);
-	    game_over = 1;
-	  }
-	  //offset next symbol
-	  memcpy(p, display, MAX_PKT_SIZE);
-	  pos_x += 50;
-	  i++;
-	}
+        if(strncmp("0b0100", button_val, 6) == 0) {
+          //BTN2 pressed
+          if(gen_sequence[i] == 1) {
+            drawSymbol(1, pos_x, pos_y, display, CLR_GREEN);
+          }
+          else {
+            drawSymbol(1, pos_x, pos_y, display, CLR_RED);
+            game_over = 1;
+          }
+          //offset next symbol
+          memcpy(p, display, MAX_PKT_SIZE);
+          pos_x += 50;
+          i++;
+        }
 
-	if(strncmp("0b1000", button_val, 6) == 0) {
-	  //BTN3 pressed
-	  if(gen_sequence[i] == 0) {
-	    drawSymbol(0, pos_x, pos_y, display, CLR_GREEN);
-	  }
-	  else {
-	    drawSymbol(0, pos_x, pos_y, display, CLR_RED);
-	    game_over = 1;
-	  }
-	  //offset next symbol
-	  memcpy(p, display, MAX_PKT_SIZE);
-	  pos_x += 50;
-	  i++;
-	}
+        if(strncmp("0b1000", button_val, 6) == 0) {
+          //BTN3 pressed
+          if(gen_sequence[i] == 0) {
+            drawSymbol(0, pos_x, pos_y, display, CLR_GREEN);
+          }
+          else {
+            drawSymbol(0, pos_x, pos_y, display, CLR_RED);
+            game_over = 1;
+          }
+          //offset next symbol
+          memcpy(p, display, MAX_PKT_SIZE);
+          pos_x += 50;
+          i++;
+        }
 
       } //end of the first part of software diff.
 
       //check if all the buttons have been released
       if(strncmp("0b0000", button_val, 6) == 0)
-	button_pressed = 0;
+        button_pressed = 0;
 
       //button combination for exiting the game
       if(strncmp("0b1111", button_val, 6) == 0)
-	exit_game = 1;
+        exit_game = 1;
 	
       
       //end of user input
       if(i == 6) {
-	drawCircle(display, 320, 240, 100, CLR_RED | CLR_GREEN);
-	memcpy(p, display, MAX_PKT_SIZE);
-	sleep(5);
-	clearScreen(display);
-	memcpy(p, display, MAX_PKT_SIZE);
-	game_begin = 0;
+        drawCircle(display, 320, 240, 100, 0, CLR_RED | CLR_GREEN);
+        memcpy(p, display, MAX_PKT_SIZE);
+        sleep(5);
+        clearScreen(display);
+        memcpy(p, display, MAX_PKT_SIZE);
+        game_begin = 0;
       }
       
     } //end of else part for playing the game, game_begin condition
@@ -191,7 +191,7 @@ void drawSymbol(int sel, int pos_x, int pos_y, unsigned int* display, unsigned i
     drawTriangle(display, pos_x + 40, pos_y, 40, rgb);
     break;
   case 3:
-    drawCircle(display, pos_x + 20, 21, 20, rgb);
+    drawCircle(display, pos_x + 20, 21, 20, 0, rgb);
     break;
   default:
     printf("Wrong select value!\n");

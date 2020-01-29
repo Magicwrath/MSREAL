@@ -30,7 +30,11 @@ void drawTriangle(unsigned int *display, int pos_x, int pos_y, int height, unsig
 
 //Draws a circle in the display array given the center coordinates and half radius
 //with the desired color
-void drawCircle(unsigned int *display, int pos_x, int pos_y, int r,  unsigned int rgb);
+//the parameter part selects which part of the circle will be drawn, the upper or lower half, or both
+//if part == 0 => draw the whole circle
+//if part < 0 => draw the lower half(negative solutions of the eq)
+//if part > 0 => draw the upper half(positive solutions of the eq)
+void drawCircle(unsigned int *display, int pos_x, int pos_y, int r, int part,  unsigned int rgb);
 
 //Clears the screen
 void clearScreen(unsigned int *display);
