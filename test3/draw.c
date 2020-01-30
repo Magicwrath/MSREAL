@@ -69,9 +69,11 @@ void drawCircle(unsigned int *display, int pos_x, int pos_y, int r, int part, un
   int i;
 
   for(x; x <= pos_x + r; x++) {
+    //common operator for the positive and negative values of the root
+    common_op = sqrt(r*r - (x - pos_x)*(x - pos_x));
+    
     //SOLUTIONS FOR THE POSITIVE VALUE OF THE ROOT
     if(part >= 0) {
-      common_op = sqrt(r*r - (x - pos_x)*(x - pos_x));
       y_val = common_op  + pos_y;
       //printf("Calculated for x = %d, y_val = %f\n", x, y_val);
       quantized_y = (int) y_val;

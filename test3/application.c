@@ -7,7 +7,7 @@
 
 #define CLR_WHITE 0xffff
 #define CLR_RED 0xf800
-#define CLR_GREEN 0x0be0
+#define CLR_GREEN 0x07e0
 
 
 void drawSymbol(int sel, int pos_x, int pos_y, unsigned int* display, unsigned int rgb);
@@ -154,13 +154,28 @@ int main(void) {
         button_pressed = 0;
 
       //button combination for exiting the game
-      if(strncmp("0b1111", button_val, 6) == 0)
+      if(strncmp("0b1100", button_val, 6) == 0)
         exit_game = 1;
 	
       
       //end of user input
       if(i == 6) {
+	//draw the head of the smiley
         drawCircle(display, 320, 240, 100, 0, CLR_RED | CLR_GREEN);
+	
+	//draw the eyes as concentric circles
+	for(i = 1; i <= 15; i++) {
+	  drawCircle(display, 270, 190, i, 0, CLR_RED | CLR_GREEN);
+	  drawCircle(display, 370, 190, i, 0, CLR_RED | CLR_GREEN);
+	}
+
+	if(game_over) {
+	  drawCircle(display, 320, 295, 50, -1, CLR_RED | CLR_GREEN);
+	  game_over = 0;
+	} else {
+	  drawCircle(display, 320, 255, 50, 1, CLR_RED | CLR_GREEN);
+	}
+	
         memcpy(p, display, MAX_PKT_SIZE);
         sleep(5);
         clearScreen(display);
