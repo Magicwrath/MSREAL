@@ -186,6 +186,8 @@ int main(void) {
     } //end of else part for playing the game, game_begin condition
   } //end of while(!exit_game)
 
+  clearScreen(display);
+  memcpy(p, display, MAX_PKT_SIZE);
   munmap(p, MAX_PKT_SIZE);
   fclose(fbutton);
   close(fd);
